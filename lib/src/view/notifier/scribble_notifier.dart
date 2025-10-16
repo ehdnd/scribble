@@ -147,15 +147,14 @@ class ScribbleNotifier extends ScribbleNotifierBase
   final GlobalKey _repaintBoundaryKey = GlobalKey();
 
   // Tracks keys of mounted Scribble widgets using this notifier.
-  // The last attached key is preferred for image rendering to avoid collisions 
+  // The last attached key is preferred for image rendering to avoid collisions
   // when the same notifier is used by multiple widgets concurrently.
   final List<GlobalKey> _attachedRepaintBoundaryKeys = <GlobalKey>[];
 
   @override
-  GlobalKey get repaintBoundaryKey =>
-      _attachedRepaintBoundaryKeys.isNotEmpty
-          ? _attachedRepaintBoundaryKeys.last
-          : _repaintBoundaryKey;
+  GlobalKey get repaintBoundaryKey => _attachedRepaintBoundaryKeys.isNotEmpty
+      ? _attachedRepaintBoundaryKeys.last
+      : _repaintBoundaryKey;
 
   @override
   void attachRepaintBoundaryKey(GlobalKey key) {
@@ -168,6 +167,25 @@ class ScribbleNotifier extends ScribbleNotifierBase
   @override
   void detachRepaintBoundaryKey(GlobalKey key) {
     _attachedRepaintBoundaryKeys.remove(key);
+  }
+
+  @override
+  Future<ByteData> renderImage({
+    double pixelRatio = 1.0,
+    ui.ImageByteFormat format = ui.ImageByteFormat.png,
+  }) {
+    assert(() {
+      if (_attachedRepaintBoundaryKeys.isEmpty) {
+        debugPrint(
+          '[scribble] renderImage() is falling back to an internal GlobalKey. '
+          'If you implement ScribbleNotifierBase yourself, override '
+          'attachRepaintBoundaryKey/detachRepaintBoundaryKey so Scribble widgets '
+          'can register their RepaintBoundary. This fallback will be removed in a future release.',
+        );
+      }
+      return true;
+    }());
+    return super.renderImage(pixelRatio: pixelRatio, format: format);
   }
 
   /// The [SketchSimplifier] that is used to simplify the lines of the sketch.
