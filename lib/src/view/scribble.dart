@@ -82,8 +82,8 @@ class _ScribbleState extends State<Scribble> {
     return ValueListenableBuilder<ScribbleState>(
       valueListenable: widget.notifier,
       builder: (context, state, _) {
-        final drawCurrentTool =
-            widget.drawPen && state is Drawing || widget.drawEraser && state is Erasing;
+        final drawCurrentTool = (widget.drawPen && state is Drawing) ||
+            (widget.drawEraser && state is Erasing);
         final child = SizedBox.expand(
           child: CustomPaint(
             foregroundPainter: ScribbleEditingPainter(
@@ -104,27 +104,47 @@ class _ScribbleState extends State<Scribble> {
             ),
           ),
         );
-        return !state.active
-            ? child
-            : GestureCatcher(
-                pointerKindsToCatch: state.supportedPointerKinds,
-                child: MouseRegion(
-                  cursor: drawCurrentTool &&
-                          state.supportedPointerKinds
-                              .contains(PointerDeviceKind.mouse)
-                      ? SystemMouseCursors.none
-                      : MouseCursor.defer,
-                  onExit: widget.notifier.onPointerExit,
-                  child: Listener(
-                    onPointerDown: widget.notifier.onPointerDown,
-                    onPointerMove: widget.notifier.onPointerUpdate,
-                    onPointerUp: widget.notifier.onPointerUp,
-                    onPointerHover: widget.notifier.onPointerHover,
-                    onPointerCancel: widget.notifier.onPointerCancel,
-                    child: child,
-                  ),
-                ),
-              );
+        final shouldCatchGestures = switch (state.allowedPointersMode) {
+          ScribblePointerMode.mouseOnly ||
+          ScribblePointerMode.penOnly ||
+          ScribblePointerMode.mouseAndPen =>
+            true,
+          ScribblePointerMode.all => false,
+        };
+
+        final supportsMouse =
+            state.supportedPointerKinds.contains(PointerDeviceKind.mouse);
+
+        Widget buildInteractiveLayer() {
+          return MouseRegion(
+            cursor: drawCurrentTool && supportsMouse
+                ? SystemMouseCursors.none
+                : MouseCursor.defer,
+            onExit: widget.notifier.onPointerExit,
+            child: Listener(
+              onPointerDown: widget.notifier.onPointerDown,
+              onPointerMove: widget.notifier.onPointerUpdate,
+              onPointerUp: widget.notifier.onPointerUp,
+              onPointerHover: widget.notifier.onPointerHover,
+              onPointerCancel: widget.notifier.onPointerCancel,
+              child: child,
+            ),
+          );
+        }
+
+        if (!state.active) {
+          return child;
+        }
+
+        final interactiveLayer = buildInteractiveLayer();
+        if (!shouldCatchGestures) {
+          return interactiveLayer;
+        }
+
+        return GestureCatcher(
+          pointerKindsToCatch: state.supportedPointerKinds,
+          child: interactiveLayer,
+        );
       },
     );
   }
