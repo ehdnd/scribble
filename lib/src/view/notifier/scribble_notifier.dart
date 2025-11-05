@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:scribble/scribble.dart';
 import 'package:scribble/src/view/painting/point_to_offset_x.dart';
+import 'package:scribble/src/view/painting/scribble_image_renderer.dart';
 import 'package:scribble/src/view/simplification/sketch_simplifier.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';
 
@@ -174,18 +175,47 @@ class ScribbleNotifier extends ScribbleNotifierBase
     double pixelRatio = 1.0,
     ui.ImageByteFormat format = ui.ImageByteFormat.png,
   }) {
-    assert(() {
-      if (_attachedRepaintBoundaryKeys.isEmpty) {
-        debugPrint(
-          '[scribble] renderImage() is falling back to an internal GlobalKey. '
-          'If you implement ScribbleNotifierBase yourself, override '
-          'attachRepaintBoundaryKey/detachRepaintBoundaryKey so Scribble widgets '
-          'can register their RepaintBoundary. This fallback will be removed in a future release.',
-        );
-      }
-      return true;
-    }());
+    assert(
+      () {
+        if (_attachedRepaintBoundaryKeys.isEmpty) {
+          debugPrint(
+            '[scribble] renderImage() is falling back to an internal '
+            'GlobalKey. If you implement ScribbleNotifierBase yourself, '
+            'override attachRepaintBoundaryKey/detachRepaintBoundaryKey so '
+            'widgets can register their RepaintBoundary. This fallback will be '
+            'removed in a future release.',
+          );
+        }
+        return true;
+      }(),
+      'ScribbleNotifier.renderImage() requires a registered RepaintBoundary.',
+    );
     return super.renderImage(pixelRatio: pixelRatio, format: format);
+  }
+
+  /// Renders the current sketch offscreen without requiring a mounted widget.
+  ///
+  /// Use this when you need to export a page image while the canvas is not in
+  /// the widget tree (e.g. bulk note export).
+  Future<ByteData> renderCurrentSketchOffscreen({
+    required Size size,
+    double? scaleFactor,
+    bool simulatePressure = true,
+    EdgeInsets padding = EdgeInsets.zero,
+    ui.Color backgroundColor = const ui.Color(0x00000000),
+    double pixelRatio = 1.0,
+    ui.ImageByteFormat format = ui.ImageByteFormat.png,
+  }) {
+    return renderSketchOffscreen(
+      sketch: value.sketch,
+      size: size,
+      scaleFactor: scaleFactor ?? value.scaleFactor,
+      simulatePressure: simulatePressure,
+      padding: padding,
+      backgroundColor: backgroundColor,
+      pixelRatio: pixelRatio,
+      format: format,
+    );
   }
 
   /// The [SketchSimplifier] that is used to simplify the lines of the sketch.
