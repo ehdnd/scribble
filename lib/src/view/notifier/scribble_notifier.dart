@@ -2,8 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:scribble/scribble.dart';
 import 'package:scribble/src/view/painting/point_to_offset_x.dart';
 import 'package:scribble/src/view/painting/scribble_image_renderer.dart';
@@ -196,7 +196,8 @@ class ScribbleNotifier extends ScribbleNotifierBase
   /// Renders the current sketch offscreen without requiring a mounted widget.
   ///
   /// Use this when you need to export a page image while the canvas is not in
-  /// the widget tree (e.g. bulk note export).
+  /// the widget tree (e.g. bulk note export). Background defaults to
+  /// transparent so callers can composite the result freely.
   Future<ByteData> renderCurrentSketchOffscreen({
     required Size size,
     double? scaleFactor,
