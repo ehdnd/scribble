@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:scribble/scribble.dart';
@@ -36,6 +37,7 @@ class _HomePageState extends State<HomePage> {
   late ScribbleNotifier notifier;
 
   bool _simulatePressure = true;
+  Size? _canvasSize;
 
   @override
   void initState() {
@@ -56,16 +58,21 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           children: [
             Expanded(
-              child: Card(
-                clipBehavior: Clip.hardEdge,
-                margin: EdgeInsets.zero,
-                color: Colors.white,
-                surfaceTintColor: Colors.white,
-                child: Scribble(
-                  notifier: notifier,
-                  drawPen: true,
-                  simulatePressure: _simulatePressure,
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  _canvasSize = constraints.biggest;
+                  return Card(
+                    clipBehavior: Clip.hardEdge,
+                    margin: EdgeInsets.zero,
+                    color: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    child: Scribble(
+                      notifier: notifier,
+                      drawPen: true,
+                      simulatePressure: _simulatePressure,
+                    ),
+                  );
+                },
               ),
             ),
             Padding(
@@ -175,6 +182,11 @@ class _HomePageState extends State<HomePage> {
         onPressed: () => _showImage(context),
       ),
       IconButton(
+        icon: const Icon(Icons.photo_library_outlined),
+        tooltip: "Show Offscreen Export",
+        onPressed: () => _showOffscreenImage(context),
+      ),
+      IconButton(
         icon: const Icon(Icons.data_object),
         tooltip: "Show JSON",
         onPressed: () => _showJson(context),
@@ -201,6 +213,45 @@ class _HomePageState extends State<HomePage> {
             onPressed: Navigator.of(context).pop,
             child: const Text("Close"),
           )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showOffscreenImage(BuildContext context) async {
+    final size = _canvasSize;
+    if (size == null || size.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Canvas size unavailable yet.')),
+      );
+      return;
+    }
+
+    final pixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final export = await notifier.renderCurrentSketchOffscreen(
+      size: ui.Size(size.width, size.height),
+      simulatePressure: _simulatePressure,
+      pixelRatio: pixelRatio,
+    );
+
+    final bytes = export.buffer.asUint8List();
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Offscreen Export\n${size.width.toStringAsFixed(0)}×${size.height.toStringAsFixed(0)} @ ${pixelRatio.toStringAsFixed(2)}x',
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Image.memory(bytes),
+        ),
+        actions: [
+          TextButton(
+            onPressed: Navigator.of(context).pop,
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
