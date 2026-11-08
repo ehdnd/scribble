@@ -46,7 +46,11 @@ Future<ByteData> renderSketchOffscreen({
   final totalHeight = size.height + padding.vertical;
 
   final recorder = ui.PictureRecorder();
+  // The output image is (size * pixelRatio) pixels, so scale the canvas to
+  // draw the background and sketch at the same resolution. Without this,
+  // everything lands in the top-left 1/pixelRatio of the image.
   final canvas = ui.Canvas(recorder)
+    ..scale(pixelRatio)
     ..drawRect(
       ui.Rect.fromLTWH(0, 0, totalWidth, totalHeight),
       ui.Paint()..color = backgroundColor,
